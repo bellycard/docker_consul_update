@@ -1,0 +1,6 @@
+{
+  "data": {
+    "command": "puts 'i like candy'\nputs 'foobar'\nputs ENV['REMOTE_SCRIPT_URL']"
+  }
+}
+
