@@ -1,5 +1,4 @@
-source :rubygems
-
+source 'https://rubygems.org'
 gem 'clockwork'
 gem 'faraday'
 gem 'docker-api'
