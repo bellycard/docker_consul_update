@@ -31,6 +31,6 @@ handler do |job|
   end
 end
 
-puts "remove script URL: #{ENV['REMOTE_SCRIPT_URL']}"
+puts "remote script URL: #{ENV['REMOTE_SCRIPT_URL']}"
 every(1.hour, 'update_self')
 every(30.seconds, 'update_consul')
