@@ -5,3 +5,4 @@ gem 'faraday'
 gem 'docker-api'
 gem 'activesupport'
 gem 'consul_api'
+gem 'rubocop', group: :development
