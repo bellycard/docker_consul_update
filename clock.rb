@@ -5,6 +5,7 @@ require 'json'
 require 'docker'
 require 'active_support'
 require 'consul_api'
+require 'yaml'
 
 include Clockwork
 
@@ -20,6 +21,8 @@ handler do |job|
         matched_service = known_agent_services.select { |kas| container.id == kas }
         if matched_service.present?
           ConsulApi::Agent.check_pass("service:#{container.id}")
+        elsif @system_services.include?(container.json['Config']['Image'])
+          # found a system service dictated by our user-data.  Ignore
         else
           puts 'possible rogue container ' + container.json['Config']['Image'] + ' ' + container.id
         end
@@ -37,6 +40,7 @@ handler do |job|
     end
   end
 end
+
 
 def register_self
   # de-register all services on this agent (in case there's a stale service)
@@ -67,12 +71,14 @@ end
 
 # no aws?  no problem.  Everything will deployable here using the following service name
 @service_id = 'jockey_consul_update'
+@system_services = []
 begin
   # if you're using AWS, you can query the user data for what kind of deploys this can take
   conn = Faraday.new('http://169.254.169.254/latest/user-data', timeout: 10, open_timeout: 10)
   response = conn.get
-  aws_user_data = response.body
+  aws_user_data = YAML.load(response.body)
   @service_id = "jockey-#{aws_user_data['jockey']['stack']}-#{aws_user_data['jockey']['env']}"
+  @system_services = aws_user_data['jockey']['system_services']
 rescue
   puts 'unable to get aws user data'
 end
