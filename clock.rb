@@ -33,7 +33,7 @@ handler do |job|
     end
   when 'report_self_to_health_check'
     begin
-      check_id = "service:#{@service_id}"
+      check_id = "service:#{@service_name}"
       ConsulApi::Agent.check_pass(check_id)
     rescue => e
       puts e.message
@@ -44,13 +44,12 @@ end
 
 def register_self
   # de-register all services on this agent (in case there's a stale service)
-  ConsulApi::Agent.service_deregister(@service_id)
+  ConsulApi::Agent.service_deregister(@service_name)
 
   # register this as a service on the consul agent
   service_hash =
     {
-      'ID' => @service_id,
-      'Name' => 'docker_consul_update',
+      'Name' => @service_name,
       'Tags' => [
 
       ],
@@ -70,7 +69,7 @@ def docker_host
 end
 
 # no aws?  no problem.  Everything will deployable here using the following service name
-@service_id = 'jockey_consul_update'
+@service_name = 'jockey_consul_update'
 @system_services = []
 begin
   # if you're using AWS, you can query the user data for what kind of deploys this can take
@@ -79,7 +78,7 @@ begin
     req.options[:timeout] = 10
   end
   aws_user_data = YAML.load(response.body)
-  @service_id = "jockey-#{aws_user_data['jockey']['stack']}-#{aws_user_data['jockey']['env']}"
+  @service_name = "jockey-#{aws_user_data['jockey']['stack']}-#{aws_user_data['jockey']['env']}"
   @system_services = aws_user_data['jockey']['system_images']
 rescue => e
   puts 'unable to get aws user data'
