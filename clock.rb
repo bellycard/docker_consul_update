@@ -74,13 +74,16 @@ end
 @system_services = []
 begin
   # if you're using AWS, you can query the user data for what kind of deploys this can take
-  conn = Faraday.new('http://169.254.169.254/latest/user-data', timeout: 10, open_timeout: 10)
-  response = conn.get
+  conn = Faraday.new('http://169.254.169.254/latest/user-data')
+  response = conn.get do |req|
+    req.options[:timeout] = 10
+  end
   aws_user_data = YAML.load(response.body)
   @service_id = "jockey-#{aws_user_data['jockey']['stack']}-#{aws_user_data['jockey']['env']}"
-  @system_services = aws_user_data['jockey']['system_services']
-rescue
+  @system_services = aws_user_data['jockey']['system_images']
+rescue => e
   puts 'unable to get aws user data'
+  puts e.message
 end
 
 register_self
