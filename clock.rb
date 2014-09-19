@@ -32,34 +32,38 @@ handler do |job|
       puts e.message
     end
   when 'report_self_to_health_check'
-    begin
-      check_id = "service:#{@service_name}"
-      ConsulApi::Agent.check_pass(check_id)
-    rescue => e
-      puts e.message
+    @service_names.each do |service_name|
+      begin
+        check_id = "service:#{service_name}"
+        ConsulApi::Agent.check_pass(check_id)
+      rescue => e
+        puts e.message
+      end
     end
   end
 end
 
 
 def register_self
-  # de-register all services on this agent (in case there's a stale service)
-  ConsulApi::Agent.service_deregister(@service_name)
+  @service_names.each do |service_name|
+    # de-register all services on this agent (in case there's a stale service)
+    ConsulApi::Agent.service_deregister(service_name)
 
-  # register this as a service on the consul agent
-  service_hash =
-    {
-      'Name' => @service_name,
-      'Tags' => [
+    # register this as a service on the consul agent
+    service_hash =
+      {
+        'Name' => service_name,
+        'Tags' => [
 
-      ],
-      'Port' => nil,
-      'Check' => {
-        # name of this check is "service:<ServiceId>".
-        'TTL' => '60s'
+        ],
+        'Port' => nil,
+        'Check' => {
+          # name of this check is "service:<ServiceId>".
+          'TTL' => '60s'
+        }
       }
-    }
-  ConsulApi::Agent.service_register(service_hash)
+    ConsulApi::Agent.service_register(service_hash)
+  end
 end
 
 def docker_host
@@ -68,8 +72,8 @@ def docker_host
   @docker_host
 end
 
-# no aws?  no problem.  Everything will deployable here using the following service name
-@service_name = 'jockey_consul_update'
+# no aws?  no problem.  Assume that this is development machine, and support builds and api
+@service_names = ['jockey-api-development', 'jockey-build-development']
 @system_services = []
 begin
   # if you're using AWS, you can query the user data for what kind of deploys this can take
@@ -78,7 +82,7 @@ begin
     req.options[:timeout] = 10
   end
   aws_user_data = YAML.load(response.body)
-  @service_name = "jockey-#{aws_user_data['jockey']['stack']}-#{aws_user_data['jockey']['env']}"
+  @service_names = ["jockey-#{aws_user_data['jockey']['stack']}-#{aws_user_data['jockey']['env']}"]
   @system_services = aws_user_data['jockey']['system_images']
 rescue => e
   puts 'unable to get aws user data'
