@@ -42,9 +42,9 @@ handler do |job|
       logger.warn e.message
     end
   when 'report_self_to_health_check'
-    @service_names.each do |service_name|
+    @service_ids.each do |service_id|
       begin
-        check_id = "service:#{service_name}"
+        check_id = "service:#{service_id}"
         ConsulApi::Agent.check_pass(check_id)
       rescue => e
         logger.warn e.message
@@ -55,14 +55,15 @@ end
 
 
 def register_self
-  @service_names.each do |service_name|
+  @service_names.each_with_index do |service_name, index|
     # de-register all services on this agent (in case there's a stale service)
-    ConsulApi::Agent.service_deregister(service_name)
+    ConsulApi::Agent.service_deregister(@service_ids[index])
 
     # register this as a service on the consul agent
     service_hash =
       {
         'Name' => service_name,
+        'ID' => @service_ids[index],
         'Tags' => [
 
         ],
@@ -84,6 +85,7 @@ end
 
 # no aws?  no problem.  Assume that this is development machine, and support builds and api
 @service_names = ['jockey-api-development', 'jockey-build-development']
+@service_ids = []
 @system_services = []
 begin
   # if you're using AWS, you can query the user data for what kind of deploys this can take
@@ -97,6 +99,10 @@ begin
 rescue => e
   logger.warn 'unable to get aws user data'
   logger.warn e.message
+end
+
+@service_names.each do |service|
+  @service_ids << SecureRandom.uuid
 end
 
 register_self
