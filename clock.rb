@@ -6,6 +6,14 @@ require 'docker'
 require 'active_support'
 require 'consul_api'
 require 'yaml'
+require 'logstash-logger'
+
+logger = logger = LogStashLogger.new(type: :stdout)
+module Clockwork
+  configure do |config|
+    config[:logger] = LogStashLogger.new(type: :stdout)
+  end
+end
 
 include Clockwork
 
@@ -24,12 +32,14 @@ handler do |job|
         elsif @system_services.include?(container.json['Config']['Image'])
           # found a system service dictated by our user-data.  Ignore
         else
-          puts 'possible rogue container ' + container.json['Config']['Image'] + ' ' + container.id
+          logger.info(message: 'possible rogue container',
+                      image: container.json['Config']['Image'],
+                      id: container.id)
         end
       end
     rescue => e
       # rescue ALL exceptions, including things like syntax
-      puts e.message
+      logger.warn e.message
     end
   when 'report_self_to_health_check'
     @service_names.each do |service_name|
@@ -37,7 +47,7 @@ handler do |job|
         check_id = "service:#{service_name}"
         ConsulApi::Agent.check_pass(check_id)
       rescue => e
-        puts e.message
+        logger.warn e.message
       end
     end
   end
@@ -85,8 +95,8 @@ begin
   @service_names = ["jockey-#{aws_user_data['jockey']['stack']}-#{aws_user_data['jockey']['env']}"]
   @system_services = aws_user_data['jockey']['system_images']
 rescue => e
-  puts 'unable to get aws user data'
-  puts e.message
+  logger.warn 'unable to get aws user data'
+  logger.warn e.message
 end
 
 register_self
