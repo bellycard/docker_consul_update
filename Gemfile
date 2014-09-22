@@ -5,4 +5,5 @@ gem 'faraday'
 gem 'docker-api'
 gem 'activesupport'
 gem 'consul_api'
+gem 'logstash-logger'
 gem 'rubocop', group: :development
