@@ -1,0 +1,157 @@
+#cloud-config
+
+jockey:
+  stack: build
+  env: production
+  system_images:
+    - my_registry.com/docker_consul_update:latest
+    - progrium/consul:latest
+    - progrium/logspout:latest
+    - pblittle/docker-logstash:latest
+coreos:
+  units:
+    - name: format-ephemeral.service
+      command: start
+      content: |
+        [Unit]
+        Description=Formats the ephemeral drive
+        [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        ExecStart=/usr/sbin/wipefs -f /dev/xvdb
+        ExecStart=/usr/sbin/mkfs.btrfs -f /dev/xvdb
+    - name: var-lib-docker.mount
+      command: start
+      content: |
+        [Unit]
+        Description=Mount ephemeral to /var/lib/docker
+        Requires=format-ephemeral.service
+        After=format-ephemeral.service
+        Before=docker.service
+        [Mount]
+        What=/dev/xvdb
+        Where=/var/lib/docker
+        Type=btrfs
+    - name: docker-tcp.socket
+      command: start
+      enable: yes
+      content: |
+        [Unit]
+        Description=Docker Socket for the API
+
+        [Socket]
+        ListenStream=2375
+        BindIPv6Only=both
+        Service=docker.service
+
+        [Install]
+        WantedBy=sockets.target
+    - name: enable-docker-tcp.service
+      command: start
+      content: |
+        [Unit]
+        Description=Enable the Docker Socket for the API
+
+        [Service]
+        Type=oneshot
+        ExecStart=/usr/bin/systemctl enable docker-tcp.socket
+    - name: consul.service
+      command: start
+      content: |
+        [Unit]
+        Description=Consul Client container
+        After=docker.service
+
+        [Service]
+        Restart=always
+        ExecStartPre=-/usr/bin/docker kill consul
+        ExecStartPre=-/usr/bin/docker rm consul
+        ExecStartPre=/usr/bin/docker pull belly/consul:latest
+        ExecStart=/usr/bin/docker run --name consul -h %H -p 8300:8300 -p 8301:8301 -p 8301:8301/udp -p 8500:8500 -p 8600:53/udp belly/consul:latest -advertise=$private_ipv4 -join=my_consul_cluster.com
+        ExecStop=/usr/bin/docker stop -t 2 consul
+    - name: docker_consul_update.service
+      command: start
+      content: |
+        [Unit]
+        Description=Docker Consul Update container
+        After=consul.service logspout.service logstash.service
+
+        [Service]
+        Restart=always
+        ExecStartPre=-/usr/bin/docker kill docker_consul_update
+        ExecStartPre=-/usr/bin/docker rm docker_consul_update
+        ExecStartPre=/usr/bin/docker pull my_registry.com/docker_consul_update:latest
+        ExecStart=/usr/bin/docker run --name docker_consul_update -e DOCKER_HOST=tcp://172.17.42.1:2375 -e CONSUL_URL=http://172.17.42.1:8500 -e REMOTE_SCRIPT_URL=https://my_jockey_install.com/container_update my_registry.com/docker_consul_update:latest
+        ExecStop=/usr/bin/docker stop -t 2 docker_consul_update
+    - name: logspout.service
+      command: start
+      content: |
+        [Unit]
+        Description=Logspout container
+        After=docker.service logspout.service
+
+        [Service]
+        TimeoutStartSec=0
+        Restart=always
+        ExecStartPre=-/usr/bin/docker kill logspout
+        ExecStartPre=-/usr/bin/docker rm logspout
+        ExecStartPre=/usr/bin/docker pull progrium/logspout:latest
+        ExecStart=/usr/bin/docker run --name logspout --link logstash:logstash -v=/var/run/docker.sock:/tmp/docker.sock progrium/logspout:latest syslog://logstash:514
+        ExecStop=/usr/bin/docker stop -t 2 logspout
+    - name: logstash.service
+      command: start
+      content: |
+        [Unit]
+        Description=Logstash container
+        After=docker.service
+
+        [Service]
+        TimeoutStartSec=0
+        Restart=always
+        ExecStartPre=-/usr/bin/docker kill logstash
+        ExecStartPre=-/usr/bin/docker rm logstash
+        ExecStartPre=/usr/bin/docker pull pblittle/docker-logstash:latest
+        ExecStart=/usr/bin/docker run --name logstash -v /etc/logstash.conf:/opt/logstash.conf:ro --expose 514/udp pblittle/docker-logstash:latest
+        ExecStop=/usr/bin/docker stop -t 2 logstash
+  update:
+    reboot-strategy: off
+users:
+  - name: user_one
+    groups:
+      - sudo
+      - docker
+    coreos-ssh-import-github: user_one
+  - name: user_two
+    groups:
+      - sudo
+      - docker
+    coreos-ssh-import-github: user_two
+  - name: user_three
+    groups:
+      - sudo
+      - docker
+    coreos-ssh-import-github: user_three
+write_files:
+  - path: /etc/logstash.conf
+    permissions: 0644
+    owner: root
+    content: |
+      input {
+        syslog {
+          type => "docker-container"
+        }
+      }
+
+      output {
+        rabbitmq {
+          codec => "json"
+          durable => true
+          exchange => "logstash_agents"
+          exchange_type => "topic"
+          host => "my_rabbit_host.bellycard.com"
+          key => "docker.%{host}"
+          persistent => true
+          port => 5672
+          workers => 1
+        }
+      }
