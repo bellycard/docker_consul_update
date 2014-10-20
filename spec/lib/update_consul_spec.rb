@@ -23,12 +23,19 @@ describe UpdateConsul do
   end
 
   def docker_containers
-    [Hashie::Mash.new({ id: '123', connection: { url: 'tcp://localhost', options: { port: 2375 } } })]
+    [
+      Hashie::Mash.new(id: '123',
+                       connection: { url: 'tcp://localhost', options: { port: 2375 } },
+                       json: { 'Config' => { 'Image' => 'x' } }),
+      Hashie::Mash.new(id: '456',
+                       connection: { url: 'tcp://localhost', options: { port: 2375 } },
+                       json: { 'Config' => { 'Image' => 'x' } })
+    ]
   end
 
   describe '#work' do
     before do
-      @update_consul = UpdateConsul.new(docker_host: 'foobar')
+      @update_consul = UpdateConsul.new(docker_host: 'foobar', system_services: [])
       allow(Docker::Container).to receive(:all) { docker_containers }
       allow(ConsulApi::Agent).to receive(:services) { all_services }
     end
@@ -41,7 +48,12 @@ describe UpdateConsul do
     end
 
     it 'logs when an unknown container is detected' do
-
+      expect(ConsulApi::Agent).to receive(:check_pass)
+      expect_any_instance_of(Logger).to receive(:info) do |message|
+        expect(message[:message]).to eq('possible rogue container')
+        expect(message[:id]).to eq('456')
+      end
+      @update_consul.work
     end
   end
 end

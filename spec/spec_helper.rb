@@ -1,14 +1,13 @@
 ENV['RACK_ENV'] = 'test'
 require 'rubygems'
 require 'bundler/setup'
-Bundler.require(:default)
+Bundler.require(:default, :test)
 require 'simplecov'
 
 SimpleCov.start
 
 # require our files so that simplecov knows about them
 Dir['./lib/**/*.rb'].each { |f| require f }
-Dir['./workers/**/*.rb'].each { |f| require f }
 
 SimpleCov.start do
   add_filter "/spec\/.*/"

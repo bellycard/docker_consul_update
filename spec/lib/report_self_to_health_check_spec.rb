@@ -1,5 +1,4 @@
 require 'spec_helper'
-require './workers/report_self_to_health_check'
 
 describe ReportSelfToHealthCheck do
   describe '#work' do
