@@ -40,12 +40,12 @@ def setup
     # if you're using AWS, you can query the user data for what kind of deploys this can take
     conn = Faraday.new('http://169.254.169.254/')
     user_data = conn.get do |req|
-      req.url = '/latest/user-data'
+      req.url '/latest/user-data'
       req.options[:timeout] = 10
     end
     aws_user_data = YAML.load(user_data.body)
     availability_zone = conn.get do |req|
-      req.url = '/lastest/meta-data/placement/availability-zone'
+      req.url '/lastest/meta-data/placement/availability-zone'
     end
 
     @service_names = [
