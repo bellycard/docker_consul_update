@@ -1,8 +1,9 @@
 class RegisterSelf
-  attr_accessor :service_names
+  attr_accessor :service_names, :availability_zone
 
-  def initialize(service_names: nil)
+  def initialize(service_names: nil, availability_zone: nil)
     self.service_names = service_names
+    self.availability_zone = availability_zone
   end
 
   def work
@@ -14,9 +15,7 @@ class RegisterSelf
       service_hash =
         {
           'Name' => service_name,
-          'Tags' => [
-
-          ],
+          'Tags' => [ "az-#{availability_zone }" ],
           'Port' => nil,
           'Check' => {
             # name of this check is "service:<ServiceId>".

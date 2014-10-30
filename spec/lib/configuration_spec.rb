@@ -21,13 +21,12 @@ describe Configuration do
       # stub out the yaml processing
       allow(YAML).to receive(:load) { Hashie::Mash.new(jockey: { stack: :foo, env: :bar }) }
       config = Configuration.new
-      expect(config.service_names).to include('jockey-zone-us-east-1b')
+      expect(config.availability_zone).to include('us-east-1b')
     end
 
     it 'sets services to development if AWS is not reachable' do
       config = Configuration.new
       expect(config.service_names).to include('jockey-api-development')
-      expect(config.service_names).to include('jockey-zone-none')
     end
   end
 end

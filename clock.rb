@@ -25,7 +25,7 @@ handler do |job|
 end
 
 @config = Configuration.new
-RegisterSelf.new(service_names: @config.service_names).work
+RegisterSelf.new(service_names: @config.service_names, availability_zone: @config.availability_zone).work
 
 every(30.seconds, 'update_consul')
 every(30.seconds, 'report_self_to_health_check')
