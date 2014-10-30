@@ -24,8 +24,6 @@ class UpdateConsul
       end
     end
   rescue => e
-    puts e
-    puts e.backtrace
     # rescue ALL exceptions, including things like syntax
     logger.warn e.message
   end
