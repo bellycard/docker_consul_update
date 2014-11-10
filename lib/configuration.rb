@@ -10,14 +10,14 @@ class Configuration
     self.system_services = []
     begin
       # if you're using AWS, you can query the user data for what kind of deploys this can take
-      conn = Faraday.new('http://169.254.169.254/')
+      conn = Faraday.new('http://169.254.169.254')
       user_data = conn.get do |req|
         req.url '/latest/user-data'
         req.options[:timeout] = 10
       end
       aws_user_data = YAML.load(user_data.body)
       availability_zone_response = conn.get do |req|
-        req.url '/lastest/meta-data/placement/availability-zone'
+        req.url '/latest/meta-data/placement/availability-zone'
       end
 
       self.service_names = ["jockey-#{aws_user_data['jockey']['stack']}-#{aws_user_data['jockey']['env']}"]
