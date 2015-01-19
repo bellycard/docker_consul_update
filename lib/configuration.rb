@@ -5,9 +5,17 @@ class Configuration
   def initialize
     logger = LogStashLogger.new(type: :stdout)
 
-    # no aws?  no problem.  Assume that this is development machine, and support builds and api
-    self.service_names = ['jockey-api-development', 'jockey-build-development']
+    # no aws?  no problem. Pass in service names and system services via ENV
+    self.service_names = []
+    if ENV['SERVICE_NAMES']
+      self.service_names = ENV['SERVICE_NAMES'].split(',')
+    end
+
     self.system_services = []
+    if ENV['SYSTEM_SERVICES']
+      self.system_services = ENV['SYSTEM_SERVICES'].split(',')
+    end
+
     begin
       # if you're using AWS, you can query the user data for what kind of deploys this can take
       conn = Faraday.new('http://169.254.169.254')
