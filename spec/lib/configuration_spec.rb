@@ -26,7 +26,15 @@ describe Configuration do
 
     it 'sets services to development if AWS is not reachable' do
       config = Configuration.new
+      expect(config.service_names).to eq([])
+    end
+
+    it 'sets services to ENV if specified' do
+      old = ENV['SERVICE_NAMES']
+      ENV['SERVICE_NAMES'] = 'jockey-api-development,jockey-build-development'
+      config = Configuration.new
       expect(config.service_names).to include('jockey-api-development')
+      ENV['SERVICE_NAMES'] = old
     end
   end
 end
