@@ -36,5 +36,13 @@ describe Configuration do
       expect(config.service_names).to include('jockey-api-development')
       ENV['SERVICE_NAMES'] = old
     end
+
+    it 'sets rogue-killer based on ENV' do
+      old = ENV['REAP_ROGUE_CONTAINERS']
+      ENV['REAP_ROGUE_CONTAINERS'] = 'yes'
+      config = Configuration.new
+      expect(config.kill_rogues).to eq('yes')
+      ENV['REAP_ROGUE_CONTAINERS'] = old
+    end
   end
 end
