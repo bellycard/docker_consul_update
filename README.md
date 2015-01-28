@@ -1,5 +1,7 @@
 # Docker Consul Update
 
+[![Build Status](https://travis-ci.org/bellycard/docker_consul_update.svg)](https://travis-ci.org/bellycard/docker_consul_update)
+
 ## To run
 
 + Build the Docker image
