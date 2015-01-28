@@ -6,6 +6,6 @@ cache:
 sudo: false
 
 rvm:
-  - 2.0.0
+  - 2.0.0-p481
 
 script: "bundle exec rspec spec --colour"
