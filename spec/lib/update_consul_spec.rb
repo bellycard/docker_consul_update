@@ -55,5 +55,15 @@ describe UpdateConsul do
       end
       @update_consul.work
     end
+
+    it 'kill unknown containers when detected' do
+      expect(ConsulApi::Agent).to receive(:check_pass)
+      expect_any_instance_of(Logger).to receive(:info) do |message|
+        expect(message[:message]).to eq('possible rogue container. killing it softly.')
+        expect(message[:id]).to eq('456')
+      end
+      update_consul = UpdateConsul.new(docker_host: 'foobar', system_services: [], kill_rogues: 'yesplease')
+      update_consul.work
+    end
   end
 end

@@ -42,4 +42,8 @@ class Configuration
     @docker_host ||= "http://#{`route -n | grep 'UG[ \t]' | awk '{print $2}'`.strip}:2375"
     @docker_host
   end
+
+  def kill_rogues
+    @kill_rogues ||= ENV['REAP_ROGUE_CONTAINERS']
+  end
 end

@@ -18,7 +18,7 @@ include Clockwork
 handler do |job|
   case job
   when 'update_consul'
-    UpdateConsul.new(docker_host: @config.docker_host, system_services: @config.system_services).work
+    UpdateConsul.new(docker_host: @config.docker_host, system_services: @config.system_services, kill_rogues: @config.kill_rogues).work
   when 'report_self_to_health_check'
     ReportSelfToHealthCheck.new(service_names: @config.service_names).work
   end
