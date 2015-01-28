@@ -1,9 +1,10 @@
 class UpdateConsul
-  attr_accessor :docker_host, :system_services
+  attr_accessor :docker_host, :system_services, :kill_rogues
 
-  def initialize(docker_host: nil, system_services: nil)
+  def initialize(docker_host: nil, system_services: nil, kill_rogues: nil)
     self.docker_host = docker_host
     self.system_services = system_services
+    self.kill_rogues = kill_rogues
   end
 
   def work
@@ -18,9 +19,17 @@ class UpdateConsul
       elsif system_services.include?(container.json['Config']['Image'])
         # found a system service dictated by our user-data.  Ignore
       else
-        logger.info(message: 'possible rogue container',
+
+        if kill_rogues
+          logger.info(message: 'possible rogue container. killing it softly.',
                     image: container.json['Config']['Image'],
                     id: container.id)
+          container.kill
+        else
+          logger.info(message: 'possible rogue container',
+                    image: container.json['Config']['Image'],
+                    id: container.id)
+        end
       end
     end
   rescue => e
