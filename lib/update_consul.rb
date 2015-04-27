@@ -10,7 +10,7 @@ class UpdateConsul
   def work
     logger = LogStashLogger.new(type: :stdout)
     # this script will get all running containers, then tell consul that they're still alive
-    containers = Docker::Container.all({}, Docker::Connection.new(docker_host, {}))
+    containers = Docker::Container.all
     known_agent_services = ConsulApi::Agent.services
     containers.each do |container|
       matched_service = known_agent_services.select { |kas| container.id == kas }
